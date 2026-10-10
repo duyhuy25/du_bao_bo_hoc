@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Cảnh Báo Sớm Nguy Cơ Bỏ Học</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1 { color: #1a73e8; text-align: center; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        label { font-weight: 600; font-size: 14px; margin-bottom: 5px; color: #555; }
+        input, select { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        input:focus, select:focus { border-color: #1a73e8; outline: none; }
+        .btn-submit { margin-top: 25px; width: 100%; padding: 12px; background-color: #1a73e8; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.3s; }
+        .btn-submit:hover { background-color: #1557b0; }
+        #result-box { margin-top: 30px; padding: 20px; border-radius: 8px; display: none; }
+        .result-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+        .high-risk { background-color: #fce8e6; color: #c5221f; border: 1px solid #fad2cf; }
+        .normal-risk { background-color: #e6f4ea; color: #137333; border: 1px solid #ceead6; }
+        .medium-risk { background-color: #fef7e0; color: #b06000; border: 1px solid #fde293; }
+        .probability-bar { height: 10px; background: #eee; border-radius: 5px; margin-top: 10px; overflow: hidden; }
+        .probability-fill { height: 100%; }
+        hr { border: 0; height: 1px; background: #eee; margin: 30px 0; }
+        
+        .tab-buttons { display: flex; margin-bottom: 20px; gap: 10px; }
+        .tab-btn { padding: 10px 20px; border: none; background: #eee; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        .tab-btn.active { background: #1a73e8; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        textarea { width: 100%; height: 300px; padding: 10px; font-family: monospace; border: 1px solid #ccc; border-radius: 6px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hệ Thống Cảnh Báo Sớm Nguy Cơ Bỏ Học</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 30px;">Nhập thông tin sinh viên tại thời điểm nhập học để dự đoán nguy cơ bỏ học.</p>
+        
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="switchTab('form-tab', this)">Nhập Form thủ công</button>
+            <button class="tab-btn" onclick="switchTab('json-tab', this)">Dùng JSON mẫu (Dành cho Dev)</button>
+        </div>
+
+        <!-- Form Tab (Full) -->
+        <div id="form-tab" class="tab-content active">
+            <p style="font-size: 14px; color: #777; margin-bottom: 20px;">Vui lòng điền đầy đủ 24 trường thông tin đầu vào để mô hình dự đoán chính xác nhất:</p>
+            
+            <h3 style="color: #1a73e8; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 0;">1. Thông tin Cá nhân & Gia đình</h3>
+            <div class="grid">
+                <div class="form-group"><label>Tuổi khi nhập học</label><input type="number" min="0" id="f_Age at enrollment" value="20"></div>
+                
+                <div class="form-group"><label>Giới tính</label>
+                    <select id="f_Gender">
+                        <option value="1" selected>Nam</option>
+                        <option value="0">Nữ</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Tình trạng hôn nhân</label>
+                    <select id="f_Marital status">
+                        <option value="1" selected>Độc thân</option>
+                        <option value="2">Đã kết hôn</option>
+                        <option value="3">Góa</option>
+                        <option value="4">Ly hôn</option>
+                        <option value="5">Sống chung (Chưa ĐKKH)</option>
+                        <option value="6">Ly thân hợp pháp</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Quốc tịch</label><select id="f_Nacionality"></select></div>
+                <div class="form-group"><label>Sinh viên quốc tế</label>
+                    <select id="f_International">
+                        <option value="1">Có</option>
+                        <option value="0" selected>Không</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Trình độ học vấn của mẹ</label><select id="f_Mother's qualification"></select></div>
+                <div class="form-group"><label>Trình độ học vấn của cha</label><select id="f_Father's qualification"></select></div>
+                <div class="form-group"><label>Nghề nghiệp của mẹ</label><select id="f_Mother's occupation"></select></div>
+                <div class="form-group"><label>Nghề nghiệp của cha</label><select id="f_Father's occupation"></select></div>
+            </div>
+
+            <h3 style="color: #1a73e8; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 20px;">2. Thông tin Học tập</h3>
+            <div class="grid">
+                <div class="form-group"><label>Thứ tự nguyện vọng trúng tuyển</label>
+                    <select id="f_Application order">
+                        <option value="1" selected>Nguyện vọng 1</option>
+                        <option value="2">Nguyện vọng 2</option>
+                        <option value="3">Nguyện vọng 3</option>
+                        <option value="4">Nguyện vọng 4</option>
+                        <option value="5">Nguyện vọng 5</option>
+                        <option value="6">Nguyện vọng 6 trở lên</option>
+                    </select>
+                </div>
+
+                <div class="form-group"><label>Ngành học</label>
+                    <select id="f_Course">
+                        <option value="9119" selected>Công nghệ thông tin (CNTT)</option>
+                        <option value="9147">Quản trị kinh doanh</option>
+                        <option value="9670">Marketing & Quảng cáo</option>
+                        <option value="9254">Quản trị Du lịch</option>
+                        <option value="9773">Báo chí & Truyền thông</option>
+                        <option value="171">Thiết kế Đa phương tiện</option>
+                        <option value="9070">Thiết kế đồ họa</option>
+                        <option value="9853">Sư phạm Tiểu học</option>
+                        <option value="9500">Điều dưỡng</option>
+                        <option value="9085">Thú y</option>
+                        <option value="9003">Nông nghiệp</option>
+                        <option value="9238">Công tác xã hội</option>
+                    </select>
+                </div>
+
+                <div class="form-group"><label>Điểm cấp 3 / Bằng cấp trước (Thang 10)</label><input type="number" step="0.1" min="0" max="10" id="f_Previous qualification (grade)" value="6.5"></div>
+                
+                <div class="form-group">
+                    <label>Điểm xét tuyển Đại học <br><small style="color: #888; font-weight: normal;">(Tối đa 32.75: 3 môn + điểm vùng)</small></label>
+                    <input type="number" step="0.01" min="0" max="32.75" id="f_Admission grade" value="21.0">
+                </div>
+                
+                <div class="form-group"><label>Phương thức xét tuyển</label><select id="f_Application mode"></select></div>
+                <div class="form-group"><label>Học ban ngày/buổi tối</label>
+                    <select id="f_Daytime/evening attendance&#9;">
+                        <option value="1" selected>Ban ngày</option>
+                        <option value="0">Buổi tối</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Loại bằng cấp trước đây</label><select id="f_Previous qualification"></select></div>
+                <div class="form-group"><label>Nhu cầu giáo dục đặc biệt</label>
+                    <select id="f_Educational special needs">
+                        <option value="1">Có</option>
+                        <option value="0" selected>Không</option>
+                    </select>
+                </div>
+            </div>
+
+            <h3 style="color: #1a73e8; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 20px;">3. Tình trạng Kinh tế & Xã hội</h3>
+            <div class="grid">
+                <div class="form-group"><label>Sống xa nhà</label>
+                    <select id="f_Displaced">
+                        <option value="1" selected>Có (Xa nhà)</option>
+                        <option value="0">Không (Gần nhà)</option>
+                    </select>
+                </div>
+
+                <div class="form-group"><label>Đang nợ nần</label>
+                    <select id="f_Debtor">
+                        <option value="1">Có</option>
+                        <option value="0" selected>Không</option>
+                    </select>
+                </div>
+
+                <div class="form-group"><label>Đã đóng đủ học phí</label>
+                    <select id="f_Tuition fees up to date">
+                        <option value="1" selected>Rồi</option>
+                        <option value="0">Chưa</option>
+                    </select>
+                </div>
+
+                <div class="form-group"><label>Có học bổng</label>
+                    <select id="f_Scholarship holder">
+                        <option value="1">Có</option>
+                        <option value="0" selected>Không</option>
+                    </select>
+                </div>
+                
+                <div class="form-group"><label>Tỷ lệ thất nghiệp (%)</label><input type="number" step="0.1" min="0" id="f_Unemployment rate" value="10.8"></div>
+                <div class="form-group"><label>Tỷ lệ lạm phát (%)</label><input type="number" step="0.1" id="f_Inflation rate" value="1.4" title="Lạm phát có thể âm (thiểu phát)"></div>
+                <div class="form-group"><label>Chỉ số GDP</label><input type="number" step="0.01" id="f_GDP" value="1.74" title="GDP có thể âm (suy thoái)"></div>
+            </div>
+
+            <button class="btn-submit" onclick="submitForm()">Dự Đoán Kết Quả</button>
+        </div>
+
+        <!-- JSON Tab -->
+        <div id="json-tab" class="tab-content">
+            <p>Dán dữ liệu JSON của sinh viên đầy đủ (như được lấy từ hệ thống SIS):</p>
+            <textarea id="json-input"></textarea>
+            <button class="btn-submit" onclick="submitJson()">Dự Đoán Kết Quả</button>
+        </div>
+
+        <!-- Result Box -->
+        <div id="result-box">
+            <div class="result-title" id="res-priority"></div>
+            <div id="res-suggestion" style="margin-bottom: 15px; font-weight: bold;"></div>
+            
+            <div>Xác suất bỏ học (Dropout): <span id="res-prob-text"></span></div>
+            <div class="probability-bar">
+                <div class="probability-fill" id="res-prob-fill" style="width: 0%; background: #c5221f;"></div>
+            </div>
+            
+            <div style="margin-top: 15px; font-size: 13px;">
+                <strong>Các lớp khác:</strong>
+                <span id="res-others"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const listNationality = [
+            [1, "Bồ Đào Nha"],
+            [999, "Việt Nam"], // Thêm Việt Nam (Mô hình sẽ xem là nhóm khác)
+            [2, "Đức"], [6, "Tây Ban Nha"], [11, "Ý"], [13, "Hà Lan"], 
+            [14, "Anh"], [105, "Nga"], [101, "Mexico"], [41, "Brazil"],
+            [32, "Thổ Nhĩ Kỳ"], [103, "Ukraine"], [21, "Angola"]
+        ];
+
+        const listQual = [
+            [37, "Cấp 1 (Lớp 1 đến Lớp 5)"],
+            [38, "Cấp 2 (Lớp 6 đến Lớp 9)"],
+            [1, "Cấp 3 (Lớp 10 đến Lớp 12)"],
+            [22, "Trung cấp / Trường nghề"],
+            [40, "Cao đẳng"],
+            [3, "Đại học / Cử nhân"],
+            [4, "Thạc sĩ"],
+            [5, "Tiến sĩ"]
+        ];
+
+        const listOcc = [
+            [1, "Lãnh đạo, Quản lý, Giám đốc"],
+            [2, "Chuyên gia trí thức / Khoa học"],
+            [122, "Bác sĩ / Chuyên gia y tế"],
+            [123, "Giáo viên / Giảng viên"],
+            [125, "Chuyên gia Công nghệ thông tin"],
+            [3, "Kỹ thuật viên bậc trung"],
+            [4, "Nhân viên hành chính / Văn phòng"],
+            [143, "Nhân viên kế toán, tài chính"],
+            [5, "Dịch vụ cá nhân, Bảo vệ, Bán hàng"],
+            [6, "Nông dân, Ngư dân, Thợ rừng"],
+            [7, "Thợ công nghiệp, Xây dựng"],
+            [8, "Thợ máy, Lắp ráp"],
+            [9, "Lao động phổ thông"],
+            [191, "Nhân viên vệ sinh"],
+            [10, "Quân đội"],
+            [90, "Khác"],
+            [99, "(Không rõ)"]
+        ];
+
+        const listMode = [
+            [1, "Đợt 1 - Phổ thông"],
+            [18, "Đợt 2 - Phổ thông"],
+            [53, "Đợt 3 - Phổ thông"],
+            [15, "Người hồi hương"],
+            [16, "Chuyển ngành"],
+            [42, "Chuyển tiếp"],
+            [43, "Chuyển trường/ngành"],
+            [51, "Chuyển trường/ngành (Quốc tế)"],
+            [39, "Hệ trên 23 tuổi"]
+        ];
+
+        function populateSelect(id, listData) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.innerHTML = "";
+            for (const item of listData) {
+                const key = item[0];
+                const val = item[1];
+                const opt = document.createElement("option");
+                opt.value = key;
+                // Không hiển thị mã số lằng nhằng nữa, chỉ hiển thị chữ
+                opt.textContent = val;
+                el.appendChild(opt);
+            }
+        }
+
+        window.onload = function() {
+            populateSelect("f_Nacionality", listNationality);
+            populateSelect("f_Mother's qualification", listQual);
+            populateSelect("f_Father's qualification", listQual);
+            populateSelect("f_Previous qualification", listQual);
+            populateSelect("f_Mother's occupation", listOcc);
+            populateSelect("f_Father's occupation", listOcc);
+            populateSelect("f_Application mode", listMode);
+        };
+
+        const sampleJson = {
+            "Marital status": 1,
+            "Application mode": 1,
+            "Application order": 1,
+            "Course": 9085,
+            "Daytime/evening attendance\t": 1,
+            "Previous qualification": 1,
+            "Previous qualification (grade)": 130.0,
+            "Nacionality": 1,
+            "Mother's qualification": 1,
+            "Father's qualification": 1,
+            "Mother's occupation": 1,
+            "Father's occupation": 1,
+            "Admission grade": 120.0,
+            "Displaced": 1,
+            "Educational special needs": 0,
+            "Debtor": 0,
+            "Tuition fees up to date": 1,
+            "Gender": 1,
+            "Scholarship holder": 0,
+            "Age at enrollment": 20,
+            "International": 0,
+            "Unemployment rate": 10.8,
+            "Inflation rate": 1.4,
+            "GDP": 1.74
+        };
+
+        document.getElementById("json-input").value = JSON.stringify(sampleJson, null, 4);
+
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        async function sendPredict(data) {
+            // Hiệu ứng chờ
+            document.getElementById("result-box").style.display = "block";
+            document.getElementById("res-priority").innerText = "Đang xử lý...";
+            document.getElementById("res-suggestion").innerText = "";
+            document.getElementById("res-prob-text").innerText = "";
+            document.getElementById("res-prob-fill").style.width = "0%";
+            document.getElementById("res-others").innerText = "";
+            document.getElementById("result-box").className = "medium-risk";
+
+            try {
+                const response = await fetch("/predict", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                showResult(result);
+            } catch (err) {
+                alert("Lỗi khi gọi API: " + err);
+            }
+        }
+
+        function submitJson() {
+            try {
+                const data = JSON.parse(document.getElementById("json-input").value);
+                sendPredict(data);
+            } catch (e) {
+                alert("JSON không hợp lệ: " + e.message);
+            }
+        }
+
+        function submitForm() {
+            const data = {};
+            for (const key in sampleJson) {
+                const inputEl = document.getElementById("f_" + key);
+                if (inputEl) {
+                    data[key] = Number(inputEl.value);
+                } else {
+                    data[key] = sampleJson[key];
+                }
+            }
+            
+            // Quy đổi và kiểm tra hợp lệ
+            if (data["Age at enrollment"] < 0) {
+                alert("Tuổi nhập học không được là số âm!");
+                return;
+            }
+            if (data["Unemployment rate"] < 0) {
+                alert("Tỷ lệ thất nghiệp không được là số âm!");
+                return;
+            }
+
+            let prevGrade = data["Previous qualification (grade)"];
+            if (prevGrade < 0 || prevGrade > 10) {
+                alert("Điểm cấp 3 phải nằm trong khoảng từ 0 đến 10!");
+                return;
+            }
+            data["Previous qualification (grade)"] = prevGrade * 20;
+
+            let adminGrade = data["Admission grade"];
+            if (adminGrade < 0 || adminGrade > 32.75) {
+                alert("Điểm xét tuyển phải nằm trong khoảng từ 0 đến 32.75!");
+                return;
+            }
+            // Điểm xét tuyển (Thang 30) -> Thang 200, tối đa 200
+            data["Admission grade"] = Math.min((adminGrade / 30.0) * 200.0, 200.0);
+            
+            sendPredict(data);
+        }
+
+        function showResult(res) {
+            if (res.error) {
+                alert("Lỗi từ server: " + res.error);
+                return;
+            }
+            
+            const box = document.getElementById("result-box");
+            box.style.display = "block";
+            box.className = "";
+            
+            let priorityText = "Mức độ: " + res.support_priority;
+            let barColor = "#137333";
+            
+            if (res.support_priority === "Critical") {
+                box.classList.add("high-risk");
+                priorityText = "🚨 BÁO ĐỘNG ĐỎ (CRITICAL)";
+                barColor = "#c5221f";
+            } else if (res.support_priority === "High") {
+                box.classList.add("medium-risk");
+                priorityText = "⚠️ NGUY CƠ CAO (HIGH)";
+                barColor = "#b06000";
+            } else {
+                box.classList.add("normal-risk");
+                priorityText = "✅ AN TOÀN (NORMAL)";
+            }
+            
+            document.getElementById("res-priority").innerText = priorityText;
+            document.getElementById("res-suggestion").innerText = res.suggestion;
+            
+            const dropoutProb = (res.prediction_probabilities["Dropout"] * 100).toFixed(1) + "%";
+            document.getElementById("res-prob-text").innerText = dropoutProb;
+            
+            const fill = document.getElementById("res-prob-fill");
+            fill.style.width = dropoutProb;
+            fill.style.backgroundColor = barColor;
+            
+            let otherTexts = [];
+            for (const [cls, p] of Object.entries(res.prediction_probabilities)) {
+                if (cls !== "Dropout") {
+                    otherTexts.push(`${cls}: ${(p * 100).toFixed(1)}%`);
+                }
+            }
+            document.getElementById("res-others").innerText = otherTexts.join(" | ");
+        }
+    </script>
+</body>
+</html>

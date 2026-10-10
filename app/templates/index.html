@@ -44,11 +44,11 @@
 
         <!-- Form Tab (Full) -->
         <div id="form-tab" class="tab-content active">
-            <p style="font-size: 14px; color: #777; margin-bottom: 20px;">Vui lòng điền đủ 24 trường thông tin đầu vào (đã được điền sẵn các giá trị mẫu bình thường):</p>
+            <p style="font-size: 14px; color: #777; margin-bottom: 20px;">Vui lòng điền đầy đủ 24 trường thông tin đầu vào để mô hình dự đoán chính xác nhất:</p>
             
-            <h3 style="color: #1a73e8; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 0;">1. Thông tin Cá nhân</h3>
+            <h3 style="color: #1a73e8; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 0;">1. Thông tin Cá nhân & Gia đình</h3>
             <div class="grid">
-                <div class="form-group"><label>Tuổi khi nhập học</label><input type="number" id="f_Age at enrollment" value="20"></div>
+                <div class="form-group"><label>Tuổi khi nhập học</label><input type="number" min="0" id="f_Age at enrollment" value="20"></div>
                 
                 <div class="form-group"><label>Giới tính</label>
                     <select id="f_Gender">
@@ -66,6 +66,17 @@
                         <option value="6">Ly thân hợp pháp</option>
                     </select>
                 </div>
+                <div class="form-group"><label>Quốc tịch</label><select id="f_Nacionality"></select></div>
+                <div class="form-group"><label>Sinh viên quốc tế</label>
+                    <select id="f_International">
+                        <option value="1">Có</option>
+                        <option value="0" selected>Không</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Trình độ học vấn của mẹ</label><select id="f_Mother's qualification"></select></div>
+                <div class="form-group"><label>Trình độ học vấn của cha</label><select id="f_Father's qualification"></select></div>
+                <div class="form-group"><label>Nghề nghiệp của mẹ</label><select id="f_Mother's occupation"></select></div>
+                <div class="form-group"><label>Nghề nghiệp của cha</label><select id="f_Father's occupation"></select></div>
             </div>
 
             <h3 style="color: #1a73e8; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 20px;">2. Thông tin Học tập</h3>
@@ -98,11 +109,26 @@
                     </select>
                 </div>
 
-                <div class="form-group"><label>Điểm cấp 3 / Bằng cấp trước (Thang 10)</label><input type="number" step="0.1" id="f_Previous qualification (grade)" value="6.5"></div>
+                <div class="form-group"><label>Điểm cấp 3 / Bằng cấp trước (Thang 10)</label><input type="number" step="0.1" min="0" max="10" id="f_Previous qualification (grade)" value="6.5"></div>
                 
                 <div class="form-group">
-                    <label>Điểm xét tuyển Đại học <br><small style="color: #888; font-weight: normal;">(Thang 40: 3 môn x 10đ + Điểm vùng tối đa 10đ)</small></label>
-                    <input type="number" step="0.1" id="f_Admission grade" value="21.0">
+                    <label>Điểm xét tuyển Đại học <br><small style="color: #888; font-weight: normal;">(Tối đa 32.75: 3 môn + điểm vùng)</small></label>
+                    <input type="number" step="0.01" min="0" max="32.75" id="f_Admission grade" value="21.0">
+                </div>
+                
+                <div class="form-group"><label>Phương thức xét tuyển</label><select id="f_Application mode"></select></div>
+                <div class="form-group"><label>Học ban ngày/buổi tối</label>
+                    <select id="f_Daytime/evening attendance&#9;">
+                        <option value="1" selected>Ban ngày</option>
+                        <option value="0">Buổi tối</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Loại bằng cấp trước đây</label><select id="f_Previous qualification"></select></div>
+                <div class="form-group"><label>Nhu cầu giáo dục đặc biệt</label>
+                    <select id="f_Educational special needs">
+                        <option value="1">Có</option>
+                        <option value="0" selected>Không</option>
+                    </select>
                 </div>
             </div>
 
@@ -135,6 +161,10 @@
                         <option value="0" selected>Không</option>
                     </select>
                 </div>
+                
+                <div class="form-group"><label>Tỷ lệ thất nghiệp (%)</label><input type="number" step="0.1" min="0" id="f_Unemployment rate" value="10.8"></div>
+                <div class="form-group"><label>Tỷ lệ lạm phát (%)</label><input type="number" step="0.1" id="f_Inflation rate" value="1.4" title="Lạm phát có thể âm (thiểu phát)"></div>
+                <div class="form-group"><label>Chỉ số GDP</label><input type="number" step="0.01" id="f_GDP" value="1.74" title="GDP có thể âm (suy thoái)"></div>
             </div>
 
             <button class="btn-submit" onclick="submitForm()">Dự Đoán Kết Quả</button>
@@ -165,6 +195,82 @@
     </div>
 
     <script>
+        const listNationality = [
+            [1, "Bồ Đào Nha"],
+            [999, "Việt Nam"], // Thêm Việt Nam (Mô hình sẽ xem là nhóm khác)
+            [2, "Đức"], [6, "Tây Ban Nha"], [11, "Ý"], [13, "Hà Lan"], 
+            [14, "Anh"], [105, "Nga"], [101, "Mexico"], [41, "Brazil"],
+            [32, "Thổ Nhĩ Kỳ"], [103, "Ukraine"], [21, "Angola"]
+        ];
+
+        const listQual = [
+            [37, "Cấp 1 (Lớp 1 đến Lớp 5)"],
+            [38, "Cấp 2 (Lớp 6 đến Lớp 9)"],
+            [1, "Cấp 3 (Lớp 10 đến Lớp 12)"],
+            [22, "Trung cấp / Trường nghề"],
+            [40, "Cao đẳng"],
+            [3, "Đại học / Cử nhân"],
+            [4, "Thạc sĩ"],
+            [5, "Tiến sĩ"]
+        ];
+
+        const listOcc = [
+            [1, "Lãnh đạo, Quản lý, Giám đốc"],
+            [2, "Chuyên gia trí thức / Khoa học"],
+            [122, "Bác sĩ / Chuyên gia y tế"],
+            [123, "Giáo viên / Giảng viên"],
+            [125, "Chuyên gia Công nghệ thông tin"],
+            [3, "Kỹ thuật viên bậc trung"],
+            [4, "Nhân viên hành chính / Văn phòng"],
+            [143, "Nhân viên kế toán, tài chính"],
+            [5, "Dịch vụ cá nhân, Bảo vệ, Bán hàng"],
+            [6, "Nông dân, Ngư dân, Thợ rừng"],
+            [7, "Thợ công nghiệp, Xây dựng"],
+            [8, "Thợ máy, Lắp ráp"],
+            [9, "Lao động phổ thông"],
+            [191, "Nhân viên vệ sinh"],
+            [10, "Quân đội"],
+            [90, "Khác"],
+            [99, "(Không rõ)"]
+        ];
+
+        const listMode = [
+            [1, "Đợt 1 - Phổ thông"],
+            [18, "Đợt 2 - Phổ thông"],
+            [53, "Đợt 3 - Phổ thông"],
+            [15, "Người hồi hương"],
+            [16, "Chuyển ngành"],
+            [42, "Chuyển tiếp"],
+            [43, "Chuyển trường/ngành"],
+            [51, "Chuyển trường/ngành (Quốc tế)"],
+            [39, "Hệ trên 23 tuổi"]
+        ];
+
+        function populateSelect(id, listData) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.innerHTML = "";
+            for (const item of listData) {
+                const key = item[0];
+                const val = item[1];
+                const opt = document.createElement("option");
+                opt.value = key;
+                // Không hiển thị mã số lằng nhằng nữa, chỉ hiển thị chữ
+                opt.textContent = val;
+                el.appendChild(opt);
+            }
+        }
+
+        window.onload = function() {
+            populateSelect("f_Nacionality", listNationality);
+            populateSelect("f_Mother's qualification", listQual);
+            populateSelect("f_Father's qualification", listQual);
+            populateSelect("f_Previous qualification", listQual);
+            populateSelect("f_Mother's occupation", listOcc);
+            populateSelect("f_Father's occupation", listOcc);
+            populateSelect("f_Application mode", listMode);
+        };
+
         const sampleJson = {
             "Marital status": 1,
             "Application mode": 1,
@@ -238,18 +344,36 @@
             for (const key in sampleJson) {
                 const inputEl = document.getElementById("f_" + key);
                 if (inputEl) {
-                    // Nếu giá trị có dấu chấm thập phân thì parse float, ngược lại parse int
-                    data[key] = inputEl.step === "0.1" ? parseFloat(inputEl.value) : parseInt(inputEl.value);
+                    data[key] = Number(inputEl.value);
                 } else {
                     data[key] = sampleJson[key];
                 }
             }
             
-            // Quy đổi thang điểm VN về thang điểm Bồ Đào Nha (200) cho mô hình
-            // Điểm cấp 3 (Thang 10) -> Thang 200 (* 20)
-            data["Previous qualification (grade)"] = data["Previous qualification (grade)"] * 20;
-            // Điểm xét tuyển (Thang 40) -> Thang 200 (/ 40 * 200)
-            data["Admission grade"] = (data["Admission grade"] / 40.0) * 200.0;
+            // Quy đổi và kiểm tra hợp lệ
+            if (data["Age at enrollment"] < 0) {
+                alert("Tuổi nhập học không được là số âm!");
+                return;
+            }
+            if (data["Unemployment rate"] < 0) {
+                alert("Tỷ lệ thất nghiệp không được là số âm!");
+                return;
+            }
+
+            let prevGrade = data["Previous qualification (grade)"];
+            if (prevGrade < 0 || prevGrade > 10) {
+                alert("Điểm cấp 3 phải nằm trong khoảng từ 0 đến 10!");
+                return;
+            }
+            data["Previous qualification (grade)"] = prevGrade * 20;
+
+            let adminGrade = data["Admission grade"];
+            if (adminGrade < 0 || adminGrade > 32.75) {
+                alert("Điểm xét tuyển phải nằm trong khoảng từ 0 đến 32.75!");
+                return;
+            }
+            // Điểm xét tuyển (Thang 30) -> Thang 200, tối đa 200
+            data["Admission grade"] = Math.min((adminGrade / 30.0) * 200.0, 200.0);
             
             sendPredict(data);
         }
