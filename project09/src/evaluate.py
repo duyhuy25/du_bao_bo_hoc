@@ -71,5 +71,25 @@ def evaluate_model():
         df_sub = pd.DataFrame(subgroup_rows)
         print(df_sub.to_string(index=False))
 
+    # --- Đánh giá trên tập TEST độc lập (Final Evaluation) ---
+    print("\n--- Final Evaluation on Independent Test Set ---")
+    y_test_pred = pipeline.predict(X_test)
+    print(classification_report(y_test, y_test_pred, digits=4))
+    
+    # Test Confusion Matrix
+    cm_test = confusion_matrix(y_test, y_test_pred, labels=pipeline.classes_)
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm_test, annot=True, fmt='d', cmap='Blues', 
+                xticklabels=pipeline.classes_, 
+                yticklabels=pipeline.classes_)
+    plt.title('Confusion Matrix on Test Set')
+    plt.ylabel('Actual')
+    plt.xlabel('Predicted')
+    
+    test_fig_path = os.path.join(fig_dir, "confusion_matrix_test.png")
+    plt.tight_layout()
+    plt.savefig(test_fig_path)
+    print(f"Test confusion matrix saved to {test_fig_path}")
+
 if __name__ == "__main__":
     evaluate_model()

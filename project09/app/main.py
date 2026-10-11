@@ -30,16 +30,49 @@ def load_model():
 async def read_root(request: Request):
     return templates.TemplateResponse(request=request, name="index.html")
 
+from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional, Dict, Any
+
+class StudentAdmissionInput(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    Age_at_enrollment: int = Field(alias="Age at enrollment", ge=15, le=100)
+    Gender: int = Field(ge=0, le=1)
+    Marital_status: int = Field(alias="Marital status", ge=1, le=6)
+    Nacionality: int = Field(ge=1)
+    International: int = Field(ge=0, le=1)
+    Displaced: int = Field(ge=0, le=1)
+    Educational_special_needs: int = Field(alias="Educational special needs", ge=0, le=1)
+    Debtor: int = Field(ge=0, le=1)
+    Tuition_fees_up_to_date: int = Field(alias="Tuition fees up to date", ge=0, le=1)
+    Scholarship_holder: int = Field(alias="Scholarship holder", ge=0, le=1)
+    Course: int
+    Application_mode: int = Field(alias="Application mode")
+    Application_order: int = Field(alias="Application order", ge=0, le=9)
+    Daytime_evening_attendance: int = Field(alias="Daytime/evening attendance\t", ge=0, le=1)
+    Previous_qualification: int = Field(alias="Previous qualification")
+    Previous_qualification_grade: float = Field(alias="Previous qualification (grade)", ge=0.0, le=200.0)
+    Admission_grade: float = Field(alias="Admission grade", ge=0.0, le=200.0)
+    Mothers_qualification: int = Field(alias="Mother's qualification")
+    Fathers_qualification: int = Field(alias="Father's qualification")
+    Mothers_occupation: int = Field(alias="Mother's occupation")
+    Fathers_occupation: int = Field(alias="Father's occupation")
+    Unemployment_rate: float = Field(alias="Unemployment rate")
+    Inflation_rate: float = Field(alias="Inflation rate")
+    GDP: float
+
 @app.post("/predict")
 @app.post("/api/support-priority")
-async def predict_support_priority(data: dict):
+async def predict_support_priority(student: StudentAdmissionInput):
     if not pipeline:
         return {"error": "Model not loaded on server."}
         
     try:
-        # Convert dictionary to DataFrame for the pipeline
-        # Needs all features except Target and 1st/2nd sem features. 
-        # (DropFutureFeatures in pipeline will handle dropping future features if they are accidentally included)
+        # Lấy dữ liệu chuẩn hóa đúng tên đặc trưng ban đầu (hỗ trợ cả Pydantic v1 & v2)
+        if hasattr(student, "model_dump"):
+            data = student.model_dump(by_alias=True)
+        else:
+            data = student.dict(by_alias=True)
         df = pd.DataFrame([data])
         
         # Predict probability
