@@ -1,4 +1,7 @@
 import os
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -40,6 +43,33 @@ def evaluate_model():
     plt.tight_layout()
     plt.savefig(fig_path)
     print(f"\nConfusion matrix plot saved to {fig_path}")
+
+    # Đánh giá theo nhóm (Subgroup Evaluation)
+    print("\n--- Subgroup Evaluation on Validation Set ---")
+    subgroup_cols = ['Gender', 'Debtor', 'Scholarship holder', 'Tuition fees up to date']
+    from sklearn.metrics import recall_score, f1_score
+    import pandas as pd
+
+    subgroup_rows = []
+    for col in subgroup_cols:
+        if col in X_val.columns:
+            for val in sorted(X_val[col].unique()):
+                mask = (X_val[col] == val)
+                if mask.sum() > 0:
+                    y_sub_true = y_val[mask]
+                    y_sub_pred = y_val_pred[mask]
+                    rec_drop = recall_score(y_sub_true, y_sub_pred, labels=['Dropout'], average=None, zero_division=0)[0]
+                    mf1 = f1_score(y_sub_true, y_sub_pred, average='macro', zero_division=0)
+                    subgroup_rows.append({
+                        'Feature': col,
+                        'Group': val,
+                        'Count': mask.sum(),
+                        'Dropout Recall': round(rec_drop, 4),
+                        'Macro-F1': round(mf1, 4)
+                    })
+    if subgroup_rows:
+        df_sub = pd.DataFrame(subgroup_rows)
+        print(df_sub.to_string(index=False))
 
 if __name__ == "__main__":
     evaluate_model()

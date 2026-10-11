@@ -38,8 +38,23 @@
         <p style="text-align: center; color: #666; margin-bottom: 30px;">Nhập thông tin sinh viên tại thời điểm nhập học để dự đoán nguy cơ bỏ học.</p>
         
         <div class="tab-buttons">
-            <button class="tab-btn active" onclick="switchTab('form-tab', this)">Nhập Form thủ công</button>
-            <button class="tab-btn" onclick="switchTab('json-tab', this)">Dùng JSON mẫu (Dành cho Dev)</button>
+            <button class="tab-btn" onclick="switchTab('intro-tab', this)">1. Giới thiệu & Phạm vi</button>
+            <button class="tab-btn active" onclick="switchTab('form-tab', this)">2. Thao tác chính (Nhập hồ sơ)</button>
+            <button class="tab-btn" onclick="switchTab('json-tab', this)">JSON Dev</button>
+            <button class="tab-btn" onclick="switchTab('modelcard-tab', this)">3. Dashboard & Model Card</button>
+        </div>
+
+        <!-- Màn hình 1: Giới thiệu & Phạm vi -->
+        <div id="intro-tab" class="tab-content" style="line-height: 1.6;">
+            <h2 style="color: #1a73e8;">Bối cảnh & Mục tiêu Hệ thống</h2>
+            <p>Hệ thống hỗ trợ Cố vấn học tập nhận diện sớm sinh viên có nguy cơ bỏ học ngay tại <b>thời điểm nhập học</b> để kịp thời triển khai các biện pháp tư vấn, học bổng hoặc trợ cấp tài chính.</p>
+            
+            <h3 style="color: #333;">Phạm vi & Giả định:</h3>
+            <ul>
+                <li><b>Đơn vị quan sát:</b> Một sinh viên tại thời điểm đăng ký/nhập học năm thứ nhất.</li>
+                <li><b>Cam kết chống rò rỉ dữ liệu (No Data Leakage):</b> Tuyệt đối không sử dụng kết quả học kỳ 1 và học kỳ 2 (điểm thi, số tín chỉ tích lũy) vì các thông tin này chưa xảy ra lúc nhập học.</li>
+                <li><b>Nguyên tắc sử dụng có trách nhiệm:</b> Hệ thống chỉ đóng vai trò <i>cảnh báo hỗ trợ</i>, tuyệt đối <b>không</b> dùng để kỷ luật, phân biệt đối xử hay thay thế quyết định của con người.</li>
+            </ul>
         </div>
 
         <!-- Form Tab (Full) -->
@@ -175,6 +190,27 @@
             <p>Dán dữ liệu JSON của sinh viên đầy đủ (như được lấy từ hệ thống SIS):</p>
             <textarea id="json-input"></textarea>
             <button class="btn-submit" onclick="submitJson()">Dự Đoán Kết Quả</button>
+        </div>
+
+        <!-- Màn hình 3: Dashboard & Model Card -->
+        <div id="modelcard-tab" class="tab-content" style="line-height: 1.6;">
+            <h2 style="color: #1a73e8;">Model Card: Random Forest Classifier (Balanced)</h2>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p><b>Thuật toán:</b> Random Forest (100 cây, class_weight='balanced', seed=42)</p>
+                <p><b>Pipeline:</b> DropFutureFeatures &rarr; ColumnTransformer (StandardScaler + OneHotEncoder) &rarr; Classifier</p>
+                <p><b>Hiệu năng trên tập kiểm thử độc lập (Test Set):</b></p>
+                <ul>
+                    <li><b>Macro-F1:</b> ~0.56 (xử lý công bằng cả 3 lớp)</li>
+                    <li><b>Dropout Recall:</b> ~0.64 (tìm được 64% sinh viên có nguy cơ thực tế)</li>
+                    <li><b>Accuracy:</b> ~0.63</li>
+                </ul>
+            </div>
+
+            <h3 style="color: #d93025;">Giới hạn & Cảnh báo an toàn (Model Limitations)</h3>
+            <ul>
+                <li><b>Sai số theo nhóm (Subgroup Fairness):</b> Mô hình phát hiện bỏ học rất nhạy với sinh viên nợ học phí (Recall &gt; 90%), nhưng kém nhạy hơn với sinh viên có học bổng (Recall ~33%).</li>
+                <li><b>Độ chính xác thời điểm nhập học:</b> Vì loại bỏ điểm học kỳ (tránh rò rỉ), tín hiệu đầu vào chỉ mang tính chất sàng lọc sơ bộ. Không được dùng để dán nhãn cố định lên sinh viên.</li>
+            </ul>
         </div>
 
         <!-- Result Box -->

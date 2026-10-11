@@ -3,7 +3,7 @@ import sys
 sys.stdout.reconfigure(encoding="utf-8")
 import nbformat as n
 from nbclient import NotebookClient
-root=Path('project09').resolve()
+root=Path(__file__).parent.resolve()
 c=[]
 def md(s): c.append(n.v4.new_markdown_cell(s))
 def code(s): c.append(n.v4.new_code_cell(s))
@@ -52,6 +52,31 @@ display(pd.Series([x for x in X_train if x not in reduced],name='Cột bị lo�
 print('Số cột trước / sau loại:',X_train.shape[1],reduced.shape[1])
 p=build_preprocessor(X_train)
 display(pd.DataFrame([(a,str(b),d) for a,b,d in p.transformers],columns=['Nhóm','Biến đổi','Các cột']))''')
+md('''### 3.1. Thí nghiệm bắt buộc: Minh họa rò rỉ dữ liệu (Data Leakage Experiment)
+So sánh mô hình ngây thơ (giữ lại kết quả học kỳ 1 & 2) với mô hình thực tế (loại bỏ thông tin tương lai).
+Kết quả cho thấy nếu để rò rỉ dữ liệu, các chỉ số nhảy vọt giả tạo do dùng thông tin mà thời điểm nhập học chưa hề có.''')
+code('''from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+# Pipeline ngây thơ (Naive Pipeline giữ nguyên toàn bộ biến học kỳ)
+cat_all = [c for c in X_train.select_dtypes(include=['object', 'int64']).columns]
+num_all = [c for c in X_train.select_dtypes(include=['float64']).columns]
+p_leak = ColumnTransformer([
+    ('num', StandardScaler(), num_all),
+    ('cat', OneHotEncoder(handle_unknown='ignore'), cat_all)
+])
+m_leak = Pipeline([
+    ('preprocessor', p_leak),
+    ('clf', RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced'))
+])
+m_leak.fit(X_train, y_train)
+p_leak_val = m_leak.predict(X_val)
+
+acc_leak = accuracy_score(y_val, p_leak_val)
+f1_leak = f1_score(y_val, p_leak_val, average='macro', zero_division=0)
+rec_leak = recall_score(y_val, p_leak_val, labels=['Dropout'], average=None, zero_division=0)[0]
+
+print(f"[CẢNH BÁO LEAKAGE] Giữ biến học kỳ:  Macro-F1={f1_leak:.4f} | Recall Dropout={rec_leak:.4f} | Accuracy={acc_leak:.4f}")
+print("-> Hiệu năng cao ảo (Macro-F1 > 0.80) nhưng hoàn toàn vô dụng tại thời điểm nhập học!")''')
 md('''## 4. Train và so sánh ứng viên
 Dummy là mốc tối thiểu, Logistic Regression là baseline tuyến tính. RF không trọng số và RF balanced cho thấy tác động của trọng số lớp. RF balanced dùng đúng cấu hình src/train.py. Trọng số balanced không bảo đảm recall Dropout tăng.
 
@@ -97,9 +122,33 @@ for name in dict.fromkeys([chosen,'RF balanced (project)']):
     ConfusionMatrixDisplay.from_predictions(y_test,pred,labels=models[name].classes_,cmap='Blues')
     plt.title(name+' — Test')
     plt.tight_layout()
-    plt.show()
 test_results=pd.DataFrame(test_rows)
 display(test_results.round(4))''')
+md('''## 5.1. Đánh giá theo nhóm (Subgroup Evaluation)
+Đánh giá độ công bằng và hiệu năng phân tách theo các nhóm nhân khẩu học và hoàn cảnh (Giới tính, Nợ học phí, Học bổng, Đóng học phí đúng hạn). Giúp phát hiện mô hình có bị thiên vị hoặc bỏ sót nhóm nào hay không.''')
+code('''sub_cols = ['Gender', 'Debtor', 'Scholarship holder', 'Tuition fees up to date']
+best_pred = models[chosen].predict(X_test)
+sub_records = []
+for c in sub_cols:
+    if c in X_test.columns:
+        for val in sorted(X_test[c].unique()):
+            m = (X_test[c] == val)
+            if m.sum() > 0:
+                y_sub = y_test[m]
+                p_sub = best_pred[m]
+                rec = recall_score(y_sub, p_sub, labels=['Dropout'], average=None, zero_division=0)[0]
+                prec = precision_score(y_sub, p_sub, labels=['Dropout'], average=None, zero_division=0)[0]
+                f1_m = f1_score(y_sub, p_sub, average='macro', zero_division=0)
+                sub_records.append({
+                    'Nhóm thuộc tính': c,
+                    'Giá trị': val,
+                    'Số lượng': int(m.sum()),
+                    'Dropout Recall': round(rec, 4),
+                    'Dropout Precision': round(prec, 4),
+                    'Macro-F1': round(f1_m, 4)
+                })
+df_subgroups = pd.DataFrame(sub_records)
+display(df_subgroups)''')
 md('''## 6. Kiểm tra chính artifact hiện có
 Hiển thị cấu hình, metrics và mức độ giống dự đoán giữa model cũ với RF vừa train. Giống dự đoán không chứng minh lịch sử train. Nếu không có lịch sử dữ liệu của artifact cũ, chưa thể khẳng định test này độc lập đối với artifact đó. Cảnh báo phiên bản (nếu có) được giữ trong output.''')
 code('''path=ROOT/'models/dropout_model.pkl'

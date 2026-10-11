@@ -31,7 +31,8 @@ async def read_root(request: Request):
     return templates.TemplateResponse(request=request, name="index.html")
 
 @app.post("/predict")
-async def predict(data: dict):
+@app.post("/api/support-priority")
+async def predict_support_priority(data: dict):
     if not pipeline:
         return {"error": "Model not loaded on server."}
         
