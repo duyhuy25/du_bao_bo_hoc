@@ -2,6 +2,8 @@ import os
 import joblib
 from sklearn.linear_model import LogisticRegression
 from sklearn.dummy import DummyClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import Pipeline
 from src.data import load_data, get_train_val_test_splits
 from src.features import DropFutureFeatures, build_preprocessor
 
